@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>跑步總決賽管理系統</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2ecc71;
+            --danger-color: #e74c3c;
+            --gold-color: #ffd700;
+            --silver-color: #c0c0c0;
+            --bronze-color: #cd7f32;
+            --light-bg: #f8f9fa;
+            --dark-text: #2c3e50;
+            --light-text: #7f8c8d;
+            --border-color: #dfe6e9;
+            --panel-bg: #ffffff;
+            --success-bg: #e8f8f5;
+            --error-bg: #fadbd8;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f7fa;
+            color: var(--dark-text);
+            line-height: 1.6;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        @media (min-width: 992px) {
+            .container {
+                grid-template-columns: 1fr 1fr 1fr;
+            }
+        }
+
+        h1, h2, h3 {
+            color: var(--dark-text);
+            margin-top: 0;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--primary-color);
+            font-size: 2.2rem;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: var(--primary-color);
+        }
+
+        h3 {
+            font-size: 1.2rem;
+            color: var(--secondary-color);
+            margin-bottom: 15px;
+            padding-left: 10px;
+            border-left: 4px solid var(--secondary-color);
+        }
+
+        .panel {
+            background-color: var(--panel-bg);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .panel:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+        }
+
+        .upload-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: var(--success-bg);
+            border-radius: 10px;
+            border: 1px dashed var(--secondary-color);
+            text-align: center;
+        }
+
+        .grade-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: var(--light-bg);
+            border-radius: 8px;
+        }
+
+        .grade-title {
+            font-weight: bold;
+            margin-bottom: 12px;
+            color: var(--dark-text);
+            padding: 8px 12px;
+            background-color: rgba(52, 152, 219, 0.1);
+            border-radius: 6px;
+            font-size: 1.1rem;
+        }
+
+        .runner-select {
+            margin-bottom: 8px;
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .runner-select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+
+        .time-input {
+            width: 60px;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            text-align: center;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .time-input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+
+        .runner-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            padding: 12px;
+            background-color: var(--light-bg);
+            border-radius: 8px;
+            transition: background-color 0.3s;
+        }
+
+        .runner-row:hover {
+            background-color: #e8f4fc;
+        }
+
+        .runner-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .rank-list {
+            margin-top: 20px;
+        }
+
+        .rank-item {
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            background-color: var(--light-bg);
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: transform 0.2s;
+        }
+
+        .rank-item:hover {
+            transform: translateX(5px);
+        }
+
+        .rank-1 {
+            background-color: rgba(255, 215, 0, 0.2);
+            border-left: 4px solid var(--gold-color);
+            font-weight: bold;
+        }
+
+        .rank-2 {
+            background-color: rgba(192, 192, 192, 0.2);
+            border-left: 4px solid var(--silver-color);
+        }
+
+        .rank-3 {
+            background-color: rgba(205, 127, 50, 0.2);
+            border-left: 4px solid var(--bronze-color);
+        }
+
+        .same-rank {
+            background-color: #e8f4fc;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 15px;
+            width: 100%;
+            transition: all 0.3s;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .export-btn {
+            background-color: var(--secondary-color);
+        }
+
+        .export-btn:hover {
+            background-color: #27ae60;
+        }
+
+        .reset-btn {
+            background-color: var(--danger-color);
+        }
+
+        .reset-btn:hover {
+            background-color: #c0392b;
+        }
+
+        .time-section {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .colon {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--dark-text);
+        }
+
+        .error-message {
+            color: var(--danger-color);
+            margin-top: 10px;
+            font-weight: bold;
+            padding: 10px;
+            background-color: var(--error-bg);
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .success-message {
+            color: var(--secondary-color);
+            margin-top: 10px;
+            font-weight: bold;
+            padding: 10px;
+            background-color: var(--success-bg);
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .class-name {
+            color: var(--light-text);
+            font-size: 0.9em;
+            margin-left: 5px;
+        }
+
+        .disabled-option {
+            color: #ccc;
+        }
+
+        input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px dashed var(--border-color);
+            border-radius: 6px;
+            background-color: white;
+        }
+
+        /* 響應式調整 */
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            
+            .panel {
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            .runner-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .time-section {
+                width: 100%;
+                justify-content: flex-end;
+            }
+        }
+
+        /* 動畫效果 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .panel {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .rank-item {
+            animation: fadeIn 0.3s ease-out;
+            animation-fill-mode: both;
+        }
+
+        .rank-item:nth-child(1) { animation-delay: 0.1s; }
+        .rank-item:nth-child(2) { animation-delay: 0.2s; }
+        .rank-item:nth-child(3) { animation-delay: 0.3s; }
+        .rank-item:nth-child(4) { animation-delay: 0.4s; }
+        .rank-item:nth-child(5) { animation-delay: 0.5s; }
+    </style>
+</head>
+<body>
+    <h1>🏃‍♀️ 小小運動會跑步總決賽管理系統 🏃‍♂️</h1>
+    
+    <div class="upload-section">
+        <h2>📤 上傳參賽名單</h2>
+        <input type="file" id="fileInput" accept=".xlsx, .xls" />
+        <button onclick="loadExcel()">📝 載入名單</button>
+        <div id="uploadMessage"></div>
+        <p><small>請上傳Excel文件，格式：A列=班級（如"小一"），B列=姓名，C列=班級名稱（如"小一甲"）</small></p>
+    </div>
+    
+    <div class="container">
+        <!-- 左側面板 - 選擇選手 -->
+        <div class="panel" id="selectionPanel">
+            <h2>👥 選擇決賽選手</h2>
+            <div id="gradeSections"></div>
+            <button class="reset-btn" onclick="resetSelections()">🔄 重置所有選擇</button>
+        </div>
+        
+        <!-- 中間面板 - 輸入成績 -->
+        <div class="panel" id="inputPanel">
+            <h2>⏱️ 輸入比賽成績</h2>
+            <div id="inputFields"></div>
+            <button onclick="calculateRankings()">📊 計算排名</button>
+        </div>
+        
+        <!-- 右側面板 - 顯示排名 -->
+        <div class="panel" id="rankingPanel">
+            <h2>🏆 比賽排名</h2>
+            <div id="rankResults"></div>
+            <button class="export-btn" onclick="exportData()">💾 導出所有記錄</button>
+        </div>
+    </div>
+
+    <script>
+        // 保持原有的JavaScript代碼不變
+        let allRunners = {};
+        let selectedRunners = [];
+        let records = [];
+        let classOrder = ['小一', '小二', '小三', '小四', '小五', '小六', '國一', '國二', '國三'];
+        let selectedRunnerIds = new Set();
+        
+        function loadExcel() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            const uploadMessage = document.getElementById('uploadMessage');
+            
+            if (!file) {
+                showMessage(uploadMessage, '請先選擇Excel文件', 'error');
+                return;
+            }
+            
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    
+                    if (workbook.SheetNames.length === 0) {
+                        showMessage(uploadMessage, 'Excel文件中沒有工作表', 'error');
+                        return;
+                    }
+                    
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: ['class', 'name', 'className'], defval: '' });
+                    
+                    if (jsonData.length < 2) {
+                        showMessage(uploadMessage, 'Excel文件中沒有足夠的數據', 'error');
+                        return;
+                    }
+                    
+                    const processedData = jsonData.filter(row => 
+                        row.class && row.name && 
+                        row.class.toString().trim() !== '' && 
+                        row.name.toString().trim() !== ''
+                    );
+                    
+                    if (processedData.length === 0) {
+                        showMessage(uploadMessage, '沒有找到有效的選手數據', 'error');
+                        return;
+                    }
+                    
+                    processExcelData(processedData);
+                    showMessage(uploadMessage, '名單載入成功！', 'success');
+                } catch (error) {
+                    console.error('讀取Excel文件時出錯:', error);
+                    showMessage(uploadMessage, `載入失敗: ${error.message}`, 'error');
+                }
+            };
+            
+            reader.onerror = function() {
+                showMessage(uploadMessage, '讀取文件時發生錯誤', 'error');
+            };
+            
+            reader.readAsArrayBuffer(file);
+        }
+        
+        function showMessage(element, message, type) {
+            element.textContent = message;
+            element.className = type + '-message';
+        }
+        
+        function processExcelData(data) {
+            allRunners = {};
+            selectedRunnerIds = new Set();
+            
+            data.forEach(row => {
+                const classGroup = row.class.toString().trim();
+                const name = row.name.toString().trim();
+                const className = row.className ? row.className.toString().trim() : '';
+                
+                if (classGroup && name) {
+                    if (!allRunners[classGroup]) {
+                        allRunners[classGroup] = [];
+                    }
+                    
+                    if (!allRunners[classGroup].some(r => r.name === name && r.className === className)) {
+                        allRunners[classGroup].push({
+                            name: name,
+                            className: className,
+                            id: `${classGroup}-${name}-${className}`
+                        });
+                    }
+                }
+            });
+            
+            const sortedClasses = [];
+            
+            classOrder.forEach(classGroup => {
+                if (allRunners[classGroup]) {
+                    sortedClasses.push(classGroup);
+                }
+            });
+            
+            Object.keys(allRunners).forEach(classGroup => {
+                if (!sortedClasses.includes(classGroup)) {
+                    sortedClasses.push(classGroup);
+                }
+            });
+            
+            const sortedRunners = {};
+            sortedClasses.forEach(classGroup => {
+                sortedRunners[classGroup] = allRunners[classGroup];
+            });
+            
+            allRunners = sortedRunners;
+            displayGradeSections();
+        }
+        
+        function displayGradeSections() {
+            const gradeSections = document.getElementById('gradeSections');
+            gradeSections.innerHTML = '';
+            
+            if (Object.keys(allRunners).length === 0) {
+                gradeSections.innerHTML = '<p>沒有可用的選手數據</p>';
+                return;
+            }
+            
+            for (const classGroup in allRunners) {
+                const gradeSection = document.createElement('div');
+                gradeSection.className = 'grade-section';
+                
+                const gradeTitle = document.createElement('div');
+                gradeTitle.className = 'grade-title';
+                gradeTitle.textContent = classGroup;
+                gradeSection.appendChild(gradeTitle);
+                
+                for (let i = 0; i < 6; i++) {
+                    const select = document.createElement('select');
+                    select.className = 'runner-select';
+                    select.dataset.classGroup = classGroup;
+                    select.dataset.index = i;
+                    
+                    const emptyOption = document.createElement('option');
+                    emptyOption.value = '';
+                    emptyOption.textContent = '-- 選擇選手 --';
+                    select.appendChild(emptyOption);
+                    
+                    allRunners[classGroup].forEach(runner => {
+                        const option = document.createElement('option');
+                        option.value = JSON.stringify({
+                            name: runner.name,
+                            className: runner.className,
+                            id: runner.id
+                        });
+                        
+                        option.textContent = runner.className ? 
+                            `${runner.name} (${runner.className})` : 
+                            runner.name;
+                        
+                        if (selectedRunnerIds.has(runner.id)) {
+                            option.disabled = true;
+                            option.classList.add('disabled-option');
+                        }
+                        
+                        select.appendChild(option);
+                    });
+                    
+                    select.addEventListener('change', function() {
+                        updateSelectedRunners(this);
+                    });
+                    gradeSection.appendChild(select);
+                }
+                
+                gradeSections.appendChild(gradeSection);
+            }
+        }
+        
+        function resetSelections() {
+            const selects = document.querySelectorAll('.runner-select');
+            selects.forEach(select => {
+                select.value = '';
+            });
+            
+            selectedRunners = [];
+            selectedRunnerIds = new Set();
+            displayInputFields();
+            document.getElementById('rankResults').innerHTML = '';
+            records = [];
+            displayGradeSections();
+            alert('已重置所有選手選擇');
+        }
+        
+        function updateSelectedRunners(selectElement) {
+            const selectedValue = selectElement.value;
+            const classGroup = selectElement.dataset.classGroup;
+            const index = selectElement.dataset.index;
+            const selectId = `${classGroup}-${index}`;
+            
+            const previousSelection = selectedRunners.find(r => r.selectId === selectId);
+            if (previousSelection) {
+                selectedRunnerIds.delete(previousSelection.id);
+            }
+            
+            if (selectedValue) {
+                const runnerData = JSON.parse(selectedValue);
+                
+                if (selectedRunnerIds.has(runnerData.id)) {
+                    alert('這位選手已經被選擇過了！');
+                    selectElement.value = '';
+                    return;
+                }
+                
+                const existingIndex = selectedRunners.findIndex(r => r.selectId === selectId);
+                if (existingIndex >= 0) {
+                    selectedRunners[existingIndex] = {
+                        classGroup: classGroup,
+                        name: runnerData.name,
+                        className: runnerData.className,
+                        selectId: selectId,
+                        id: runnerData.id
+                    };
+                } else {
+                    selectedRunners.push({
+                        classGroup: classGroup,
+                        name: runnerData.name,
+                        className: runnerData.className,
+                        selectId: selectId,
+                        id: runnerData.id
+                    });
+                }
+                
+                selectedRunnerIds.add(runnerData.id);
+            } else {
+                selectedRunners = selectedRunners.filter(r => r.selectId !== selectId);
+            }
+            
+            updateSelectOptions();
+            displayInputFields();
+        }
+        
+        function updateSelectOptions() {
+            const selects = document.querySelectorAll('.runner-select');
+            
+            selects.forEach(select => {
+                const options = select.options;
+                
+                for (let i = 0; i < options.length; i++) {
+                    const option = options[i];
+                    
+                    if (option.value && option.value !== '') {
+                        const runnerData = JSON.parse(option.value);
+                        
+                        if (selectedRunnerIds.has(runnerData.id)) {
+                            if (select.value !== option.value) {
+                                option.disabled = true;
+                                option.classList.add('disabled-option');
+                            } else {
+                                option.disabled = false;
+                                option.classList.remove('disabled-option');
+                            }
+                        } else {
+                            option.disabled = false;
+                            option.classList.remove('disabled-option');
+                        }
+                    }
+                }
+            });
+        }
+        
+        function displayInputFields() {
+            const inputFields = document.getElementById('inputFields');
+            inputFields.innerHTML = '';
+            
+            if (selectedRunners.length === 0) {
+                inputFields.innerHTML = '<p>請先選擇決賽選手</p>';
+                return;
+            }
+            
+            selectedRunners.forEach(runner => {
+                const runnerRow = document.createElement('div');
+                runnerRow.className = 'runner-row';
+                
+                const runnerInfo = document.createElement('div');
+                runnerInfo.className = 'runner-info';
+                
+                const nameDisplay = document.createElement('span');
+                nameDisplay.textContent = `${runner.classGroup} - ${runner.name}`;
+                
+                const classNameDisplay = document.createElement('span');
+                classNameDisplay.className = 'class-name';
+                classNameDisplay.textContent = runner.className ? `(${runner.className})` : '';
+                
+                runnerInfo.appendChild(nameDisplay);
+                runnerInfo.appendChild(classNameDisplay);
+                runnerRow.appendChild(runnerInfo);
+                
+                const timeSection = document.createElement('div');
+                timeSection.className = 'time-section';
+                
+                const secondsInput = document.createElement('input');
+                secondsInput.type = 'number';
+                secondsInput.className = 'time-input';
+                secondsInput.min = '0';
+                secondsInput.max = '59';
+                secondsInput.placeholder = '秒';
+                secondsInput.dataset.id = runner.selectId;
+                secondsInput.dataset.type = 'seconds';
+                timeSection.appendChild(secondsInput);
+                
+                const colon = document.createElement('span');
+                colon.className = 'colon';
+                colon.textContent = ':';
+                timeSection.appendChild(colon);
+                
+                const millisecondsInput = document.createElement('input');
+                millisecondsInput.type = 'number';
+                millisecondsInput.className = 'time-input';
+                millisecondsInput.min = '0';
+                millisecondsInput.max = '99';
+                millisecondsInput.placeholder = '毫秒';
+                millisecondsInput.dataset.id = runner.selectId;
+                millisecondsInput.dataset.type = 'milliseconds';
+                timeSection.appendChild(millisecondsInput);
+                
+                runnerRow.appendChild(timeSection);
+                inputFields.appendChild(runnerRow);
+            });
+        }
+        
+        function calculateRankings() {
+            records = [];
+            const timeInputs = document.querySelectorAll('.time-input');
+            
+            let allFilled = true;
+            timeInputs.forEach(input => {
+                if (!input.value) {
+                    allFilled = false;
+                    input.style.borderColor = '#e74c3c';
+                } else {
+                    input.style.borderColor = '#ddd';
+                }
+            });
+            
+            if (!allFilled) {
+                alert('請為所有選手輸入完整的比賽成績');
+                return;
+            }
+            
+            selectedRunners.forEach(runner => {
+                const secondsInput = document.querySelector(`input[data-id="${runner.selectId}"][data-type="seconds"]`);
+                const millisecondsInput = document.querySelector(`input[data-id="${runner.selectId}"][data-type="milliseconds"]`);
+                
+                let seconds = parseInt(secondsInput.value);
+                let milliseconds = parseInt(millisecondsInput.value);
+                
+                if (isNaN(seconds)) seconds = 0;
+                if (isNaN(milliseconds)) milliseconds = 0;
+                
+                seconds = Math.max(0, Math.min(59, seconds));
+                milliseconds = Math.max(0, Math.min(99, milliseconds));
+                
+                const totalTime = seconds * 100 + milliseconds;
+                
+                records.push({
+                    classGroup: runner.classGroup,
+                    name: runner.name,
+                    className: runner.className,
+                    seconds: seconds,
+                    milliseconds: milliseconds,
+                    totalTime: totalTime,
+                    displayTime: `${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(2, '0')}`,
+                    selectId: runner.selectId,
+                    id: runner.id
+                });
+            });
+            
+            displayRankings();
+        }
+        
+        function displayRankings() {
+            const rankResults = document.getElementById('rankResults');
+            rankResults.innerHTML = '';
+            
+            const classGroups = {};
+            records.forEach(record => {
+                if (!classGroups[record.classGroup]) {
+                    classGroups[record.classGroup] = [];
+                }
+                classGroups[record.classGroup].push(record);
+            });
+            
+            for (const classGroup in classGroups) {
+                const gradeTitle = document.createElement('h3');
+                gradeTitle.textContent = classGroup;
+                rankResults.appendChild(gradeTitle);
+                
+                classGroups[classGroup].sort((a, b) => a.totalTime - b.totalTime);
+                
+                const rankList = document.createElement('div');
+                rankList.className = 'rank-list';
+                
+                for (let i = 0; i < classGroups[classGroup].length; i++) {
+                    const runner = classGroups[classGroup][i];
+                    
+                    if (i === 0) {
+                        runner.rank = 1;
+                    } else {
+                        if (runner.totalTime === classGroups[classGroup][i - 1].totalTime) {
+                            runner.rank = classGroups[classGroup][i - 1].rank;
+                        } else {
+                            runner.rank = classGroups[classGroup][i - 1].rank + 1;
+                        }
+                    }
+                    
+                    const rankItem = document.createElement('div');
+                    
+                    if (i > 0 && runner.rank === classGroups[classGroup][i - 1].rank) {
+                        rankItem.className = 'rank-item same-rank';
+                    } else {
+                        if (runner.rank === 1) {
+                            rankItem.className = 'rank-item rank-1';
+                        } else if (runner.rank === 2) {
+                            rankItem.className = 'rank-item rank-2';
+                        } else if (runner.rank === 3) {
+                            rankItem.className = 'rank-item rank-3';
+                        } else {
+                            rankItem.className = 'rank-item';
+                        }
+                    }
+                    
+                    const rankInfo = document.createElement('div');
+                    
+                    const nameDisplay = document.createElement('span');
+                    nameDisplay.innerHTML = `<strong>第 ${runner.rank} 名</strong>: ${runner.name}`;
+                    
+                    const classNameDisplay = document.createElement('span');
+                    classNameDisplay.className = 'class-name';
+                    classNameDisplay.textContent = runner.className ? `(${runner.className})` : '';
+                    
+                    rankInfo.appendChild(nameDisplay);
+                    rankInfo.appendChild(classNameDisplay);
+                    
+                    const rankTime = document.createElement('div');
+                    rankTime.textContent = runner.displayTime;
+                    
+                    rankItem.appendChild(rankInfo);
+                    rankItem.appendChild(rankTime);
+                    rankList.appendChild(rankItem);
+                }
+                
+                rankResults.appendChild(rankList);
+            }
+        }
+        
+        function exportData() {
+            if (records.length === 0) {
+                alert('沒有可導出的數據');
+                return;
+            }
+            
+            const classGroups = {};
+            records.forEach(record => {
+                if (!classGroups[record.classGroup]) {
+                    classGroups[record.classGroup] = [];
+                }
+                classGroups[record.classGroup].push(record);
+            });
+            
+            const exportData = [];
+            
+            for (const classGroup in classGroups) {
+                classGroups[classGroup].sort((a, b) => a.totalTime - b.totalTime);
+                
+                for (let i = 0; i < classGroups[classGroup].length; i++) {
+                    const runner = classGroups[classGroup][i];
+                    
+                    if (i === 0) {
+                        runner.rank = 1;
+                    } else {
+                        if (runner.totalTime === classGroups[classGroup][i - 1].totalTime) {
+                            runner.rank = classGroups[classGroup][i - 1].rank;
+                        } else {
+                            runner.rank = classGroups[classGroup][i - 1].rank + 1;
+                        }
+                    }
+                    
+                    exportData.push({
+                        '班級': runner.classGroup,
+                        '班級名稱': runner.className || '',
+                        '姓名': runner.name,
+                        '成績(秒)': runner.seconds,
+                        '成績(毫秒)': runner.milliseconds,
+                        '總成績': runner.displayTime,
+                        '排名': `第${runner.rank}名`
+                    });
+                }
+            }
+            
+            exportData.sort((a, b) => {
+                if (a.班級 === b.班級) {
+                    return (a['成績(秒)'] * 100 + a['成績(毫秒)']) - (b['成績(秒)'] * 100 + b['成績(毫秒)']);
+                }
+                return classOrder.indexOf(a.班級) - classOrder.indexOf(b.班級) || a.班級.localeCompare(b.班級);
+            });
+            
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            XLSX.utils.book_append_sheet(wb, ws, '跑步決賽成績');
+            
+            XLSX.writeFile(wb, '跑步決賽成績.xlsx');
+        }
+    </script>
+</body>
+</html>
